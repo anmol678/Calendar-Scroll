@@ -127,16 +127,12 @@ struct Timeline: View {
                 if oldValue != newValue {
                     if newValue == 1 {
                         store.updateScope(.week)
-//                        print("set week")
                     } else if newValue == 0 {
                         store.updateScope(.month)
-//                        print("set month")
                     } else {
                         store.updateScope(.transition)
                     }
                 }
-                
-//                print(newValue)
             }
         }
         .frame(height: calendarHeight)

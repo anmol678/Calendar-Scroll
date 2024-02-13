@@ -46,4 +46,10 @@ extension Date {
             let calendar = Calendar.current
         return calendar.date(byAdding: .weekOfYear, value: weeks, to: self)!
     }
+    
+    var shortDaySymbol: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: self)
+    }
 }

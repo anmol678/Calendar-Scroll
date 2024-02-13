@@ -70,27 +70,11 @@ class CalendarStore: ObservableObject {
     }
     
     private func month(for date: Date, with index: Int) -> TimePeriod {
-        let days = self.datesFor(month: date)
-        return TimePeriod(index: index, dates: days, referenceDate: date)
+        TimePeriod(index: index, dates: datesFor(month: date), referenceDate: date)
     }
     
     private func week(for date: Date, with index: Int) -> TimePeriod {
-        var result: [Day] = []
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd"
-        
-        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)) else {
-            return TimePeriod(index: index, dates: [], referenceDate: date)
-        }
-        
-        (0...6).forEach { day in
-            if let weekday = calendar.date(byAdding: .day, value: day, to: startOfWeek) {
-                let shortSymbol = formatter.string(from: weekday)
-                result.append(Day(shortSymbol: shortSymbol, date: weekday))
-            }
-        }
-        
-        return TimePeriod(index: index, dates: result, referenceDate: date)
+        TimePeriod(index: index, dates: datesFor(week: date), referenceDate: date)
     }
     
     func selectToday() {
@@ -157,52 +141,28 @@ class CalendarStore: ObservableObject {
     }
     
     private func datesFor(month: Date) -> [Day] {
-        var days: [Day] = []
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd"
-        
-        guard let range = calendar.range(of: .day, in: .month, for: month)?.compactMap({ value -> Date? in
-            return calendar.date(byAdding: .day, value: value - 1, to: month)
-        }) else {
-            return days
-        }
-        
-        let firstWeekDay = calendar.component(.weekday, from: range.first!)
-        
-        for index in Array(0..<firstWeekDay - 1).reversed() {
-            guard let date = calendar.date(byAdding: .day, value: -index - 1, to: range.first!) else { return days }
-            let shortSymbol = formatter.string(from: date)
-            
-            days.append(Day(shortSymbol: shortSymbol, date: date, ignored: true))
-        }
-        
-        range.forEach { date in
-            let shortSymbol = formatter.string(from: date)
-            days.append(Day(shortSymbol: shortSymbol, date: date))
-        }
-        
-        let lastWeekDay = 7 - calendar.component(.weekday, from: range.last!)
-        
-        if lastWeekDay > 0 {
-            for index in 0..<lastWeekDay {
-                guard let date = calendar.date(byAdding: .day, value: index + 1, to: range.last!) else { return days }
-                let shortSymbol = formatter.string(from: date)
-                
-                days.append(Day(shortSymbol: shortSymbol, date: date, ignored: true))
+        let range = calendar.range(of: .day, in: .month, for: month)
+        let firstDayOfMonth = month.startOfMonth()
+        let firstWeekDayIndex = calendar.component(.weekday, from: firstDayOfMonth) - 1
+        return (-firstWeekDayIndex...41).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: firstDayOfMonth),
+                  let range = range else {
+                return nil
             }
+            let isIgnored = offset < 0 || !range.contains(offset + 1)
+            return Day(date: date, ignored: isIgnored)
         }
-        
-        if days.count == 35 {
-            let lastWeekDay = days.last!.date
-            for index in 0..<7 {
-                guard let date = calendar.date(byAdding: .day, value: index + 1, to: lastWeekDay) else { return days }
-                let shortSymbol = formatter.string(from: date)
-                
-                days.append(Day(shortSymbol: shortSymbol, date: date, ignored: true))
-            }
-        }
-        
-        return days
     }
+    
+    private func datesFor(week: Date) -> [Day] {
+        let startOfWeek = week.startOfWeek()
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else {
+                return nil
+            }
+            return Day(date: date)
+        }
+    }
+    
 }
 
