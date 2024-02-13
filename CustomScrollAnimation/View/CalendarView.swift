@@ -26,12 +26,21 @@ struct CalendarTabView<Content: View>: View {
     }
 
     var body: some View {
+        var data: [TimePeriod] {
+            switch store.scope {
+                case .month:
+                    store.months
+                case .week:
+                    store.weeks
+            }
+        }
+        
         TabView(selection: $activeTab) {
-            content(store.months[0])
+            content(data[0])
                 .frame(maxWidth: .infinity)
                 .tag(0)
 
-            content(store.months[1])
+            content(data[1])
                 .frame(maxWidth: .infinity)
                 .tag(1)
                 .onDisappear() {
@@ -42,7 +51,7 @@ struct CalendarTabView<Content: View>: View {
                     }
                 }
 
-            content(store.months[2])
+            content(data[2])
                 .frame(maxWidth: .infinity)
                 .tag(2)
         }

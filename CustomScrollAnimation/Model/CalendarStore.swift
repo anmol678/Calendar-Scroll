@@ -23,53 +23,63 @@ class CalendarStore: ObservableObject {
     private let calendar = Calendar.current
     
     @Published var months: [TimePeriod] = []
-//    @Published private var weeks: [TimePeriod] = []
+    @Published var weeks: [TimePeriod] = []
     
     @Published var selectedDate: Date {
         didSet {
-            guard let selectedMonth = months.first(where: { $0.referenceDate == selectedMonth }) else {
-                let newSelectedMonth = selectedDate.getDateFor(.year, .month)
-                calcTimePeriod(with: newSelectedMonth)
-                return
+            if let index = months.firstIndex(where: { $0.referenceDate == selectedMonth }), index != 1 {
+                selectedMonth = months[index].referenceDate
             }
+            calcTimePeriod(with: selectedDate, weekOnly: true)
         }
     }
     
     @Published var selectedMonth: Date
-    
-//    var data: [TimePeriod] {
-//        switch self.scope {
-//            case .month:
-//                months
-//            case .week:
-//                weeks
-//        }
-//    }
+    @Published var selectedWeek: Date
     
     @Published var scope: CalendarScope
 
     init(with date: Date = Date()) {
         self.selectedDate = calendar.startOfDay(for: date)
         self.selectedMonth = date.getDateFor(.year, .month)
+        self.selectedWeek = date.getDateFor(.yearForWeekOfYear, .weekOfYear)
         self.scope = .month
-        calcTimePeriod(with: selectedMonth)
+        calcTimePeriod(with: selectedDate)
     }
 
-    private func calcTimePeriod(with date: Date) {
-//        switch self.scope {
-//            case .month:
-                months = [
-                    month(for: calendar.date(byAdding: .month, value: -1, to: date)!, with: -1),
-                    month(for: date, with: 0),
-                    month(for: calendar.date(byAdding: .month, value: 1, to: date)!, with: 1)
+    private func calcTimePeriod(with date: Date, weekOnly: Bool = false) {
+
+        if !weekOnly {
+            let monthDate = date.getDateFor(.year, .month)
+            selectedMonth = monthDate
+            months = [
+                month(for: calendar.date(byAdding: .month, value: -1, to: monthDate)!, with: -1),
+                month(for: monthDate, with: 0),
+                month(for: calendar.date(byAdding: .month, value: 1, to: monthDate)!, with: 1)
+            ]
+        }
+                
+        if let index = months.firstIndex(where: { $0.referenceDate == date }) {
+            if index == 1 && months[index].dates.contains(where: { $0.date == selectedDate }) {
+                let weekDate = selectedDate.getDateFor(.yearForWeekOfYear, .weekOfYear)
+                selectedWeek = weekDate
+                weeks = [
+                    week(for: calendar.date(byAdding: .weekOfYear, value: -1, to: weekDate)!, with: -1),
+                    week(for: weekDate, with: 0),
+                    week(for: calendar.date(byAdding: .weekOfYear, value: 1, to: weekDate)!, with: 1)
                 ]
-//            case .week:
-//                weeks = [
-//                    week(for: calendar.date(byAdding: .day, value: -7, to: date)!, with: -1),
-//                    week(for: date, with: 0),
-//                    week(for: calendar.date(byAdding: .day, value: 7, to: date)!, with: 1)
-//                ]
-//        }
+                return
+            }
+        }
+       
+        let weekDate = date.getDateFor(.yearForWeekOfYear, .weekOfYear)
+        selectedWeek = weekDate
+        weeks = [
+            week(for: calendar.date(byAdding: .weekOfYear, value: -1, to: weekDate)!, with: -1),
+            week(for: weekDate, with: 0),
+            week(for: calendar.date(byAdding: .weekOfYear, value: 1, to: weekDate)!, with: 1)
+        ]
+                
     }
     
     private func month(for date: Date, with index: Int) -> TimePeriod {
@@ -103,19 +113,76 @@ class CalendarStore: ObservableObject {
     }
 
     func update(to direction: TimeDirection) {
-        switch direction {
-            case .future:
-//                selectedDate = calendar.date(byAdding: .day, value: 7, to: selectedDate)!
-                selectedMonth = calendar.date(byAdding: .month, value: 1, to: selectedMonth)!
-            case .past:
-//                selectedDate = calendar.date(byAdding: .day, value: -7, to: selectedDate)!
-                selectedMonth = calendar.date(byAdding: .month, value: -1, to: selectedMonth)!
-            case .unknown:
-//                selectedDate = selectedDate
-                selectedMonth = selectedMonth
+        switch scope {
+            case .week:
+                let oldSelectedWeekMonth = selectedWeek.getDateFor(.year, .month)
+                switch direction {
+                    case .future:
+                        selectedWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: selectedWeek)!
+                    case .past:
+                        selectedWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: selectedWeek)!
+                    case .unknown:
+                        selectedWeek = selectedWeek
+                }
+                
+                let newSelectedWeekMonth = selectedWeek.getDateFor(.year, .month)
+                if oldSelectedWeekMonth != newSelectedWeekMonth {
+                    selectedMonth = newSelectedWeekMonth
+                }
+                
+                calcTimePeriod(with: selectedWeek)
+                
+//                let selectedDateWeek = selectedDate.getDateFor(.yearForWeekOfYear, .weekOfYear)
+//                if let index = weeks.firstIndex(where: { $0.referenceDate == selectedDateWeek }) {
+//                    if index == 1 {
+//                        calcTimePeriod(with: selectedDate)
+//                        return
+//                    }
+//                }
+//                
+//                calcTimePeriod(with: selectedWeek)
+                
+            case .month:
+                switch direction {
+                    case .future:
+                        selectedMonth = calendar.date(byAdding: .month, value: 1, to: selectedMonth)!
+                    case .past:
+                        selectedMonth = calendar.date(byAdding: .month, value: -1, to: selectedMonth)!
+                    case .unknown:
+                        selectedMonth = selectedMonth
+                }
+                
+//                let selectedDateMonth = selectedDate.getDateFor(.year, .month)
+//                if let index = months.firstIndex(where: { $0.referenceDate == selectedDateMonth }) {
+//                    if index == 1 {
+//                        selectedWeek = selectedDate.getDateFor(.yearForWeekOfYear, .weekOfYear)
+//                        calcTimePeriod(with: selectedDate)
+//                        return
+//                    }
+//                }
+//                selectedWeek = selectedMonth.getDateFor(.yearForWeekOfYear, .weekOfYear)
+                
+                // if selectedDate in selectedMonth
+                
+                calcTimePeriod(with: selectedMonth)
         }
-
-        calcTimePeriod(with: selectedMonth)
+        
+    }
+    
+    func updateScope(_ scope: CalendarScope) {
+        if scope == .week {
+            if weeks[1].dates.contains(where: { $0.date == selectedDate }) {
+                selectedMonth = selectedDate.getDateFor(.year, .month)
+                calcTimePeriod(with: selectedDate)
+            }
+        } else {
+            if months[1].dates.contains(where: { $0.date == selectedDate }) {
+                print("inhere")
+            }
+            print("here")
+        }
+        
+        self.scope = scope
     }
     
     private func datesFor(month: Date) -> [Day] {

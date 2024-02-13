@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Home: View {
+struct Timeline: View {
     @EnvironmentObject var store: CalendarStore
     
     /// View Properties
@@ -87,9 +87,9 @@ struct Home: View {
                 .frame(height: weekLabelHeight, alignment: .bottom)
                 
                 /// Calendar Grid View
-                CalendarTabView() { month in
+                CalendarTabView() { timeperiod in
                     LazyVGrid(columns: Array(repeating: GridItem(spacing: 0), count: 7), spacing: 0, content: {
-                        ForEach(month.dates) { day in
+                        ForEach(timeperiod.dates) { day in
                             Text(day.shortSymbol)
                                 .foregroundStyle(day.ignored ? .secondary : .primary)
                                 .frame(maxWidth: .infinity)
@@ -106,8 +106,8 @@ struct Home: View {
                                 }
                         }
                     })
-                    .frame(height: calendarGridHeight - ((calendarGridHeight - gridHeight) * progress), alignment: .top)
-                    .offset(y: ((monthProgress * -gridHeight) * progress))
+                    .frame(height: store.scope == .week ? gridHeight : calendarGridHeight - ((calendarGridHeight - gridHeight) * progress), alignment: .top)
+                    .offset(y: store.scope == .week ? 0 : ((monthProgress * -gridHeight) * progress))
                     .contentShape(.rect)
                     .clipped()
                 }
@@ -123,6 +123,19 @@ struct Home: View {
             .clipped()
             .contentShape(.rect)
             .offset(y: -minY)
+            .onChange(of: progress) { oldValue, newValue in
+                if oldValue != newValue {
+                    if newValue == 1 {
+                        store.updateScope(.week)
+//                        print("set week")
+                    } else {
+                        store.updateScope(.month)
+//                        print("set month")
+                    }
+                }
+                
+//                print(newValue)
+            }
         }
         .frame(height: calendarHeight)
         .zIndex(1000)
@@ -184,10 +197,6 @@ struct Home: View {
     }
 }
 
-#Preview {
-    ContentView()
-}
-
 /// Custom Scroll Behaviour
 struct CustomScrollBehaviour: ScrollTargetBehavior {
     var maxHeight: CGFloat
@@ -195,5 +204,13 @@ struct CustomScrollBehaviour: ScrollTargetBehavior {
         if target.rect.minY < maxHeight {
             target.rect = .zero
         }
+        
+        if target.rect.minY < context.containerSize.height/4, context.velocity.dy < 0 {
+            target.rect.origin.y = 0.0
+        }
     }
+}
+
+#Preview {
+    ContentView()
 }
