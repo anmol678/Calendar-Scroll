@@ -7,10 +7,10 @@
 
 import SwiftUI
 
-enum TimeDirection {
-    case future
-    case past
-    case unknown
+enum TimeDirection: Int {
+    case past = -1
+    case unknown = 0
+    case future = 1
 }
 
 struct CalendarTabView<Content: View>: View {
@@ -27,11 +27,10 @@ struct CalendarTabView<Content: View>: View {
 
     var body: some View {
         var data: [TimePeriod] {
-            switch store.scope {
-                case .month:
-                    store.months
-                case .week:
-                    store.weeks
+            if store.scope == .week {
+                store.weeks
+            } else {
+                store.months
             }
         }
         

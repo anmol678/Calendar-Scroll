@@ -1,5 +1,5 @@
 //
-//  Home.swift
+//  Timeline.swift
 //  CustomScrollAnimation
 //
 //  Created by Balaji Venkatesh on 15/11/23.
@@ -34,7 +34,7 @@ struct Timeline: View {
     @ViewBuilder
     func CardView() -> some View {
         RoundedRectangle(cornerRadius: 15)
-            .fill(.blue.gradient)
+            .fill(.secondary)
             .frame(height: 70)
             .overlay(alignment: .leading) {
                 HStack(spacing: 12) {
@@ -107,7 +107,7 @@ struct Timeline: View {
                         }
                     })
                     .frame(height: store.scope == .week ? gridHeight : calendarGridHeight - ((calendarGridHeight - gridHeight) * progress), alignment: .top)
-                    .offset(y: store.scope == .week ? 0 : ((monthProgress * -gridHeight) * progress))
+                    .offset(y: store.scope == .week ? 0 : ((weekRow * -gridHeight) * progress))
                     .contentShape(.rect)
                     .clipped()
                 }
@@ -118,7 +118,7 @@ struct Timeline: View {
             .padding(.vertical, verticalPadding)
             .frame(maxHeight: .infinity)
             .frame(height: size.height - (maxHeight * progress), alignment: .top)
-            .background(.red.gradient)
+            .background(.regularMaterial)
             /// Sticking it to top
             .clipped()
             .contentShape(.rect)
@@ -128,9 +128,11 @@ struct Timeline: View {
                     if newValue == 1 {
                         store.updateScope(.week)
 //                        print("set week")
-                    } else {
+                    } else if newValue == 0 {
                         store.updateScope(.month)
 //                        print("set month")
+                    } else {
+                        store.updateScope(.transition)
                     }
                 }
                 
@@ -158,9 +160,8 @@ struct Timeline: View {
         return format("YYYY")
     }
     
-    var monthProgress: CGFloat {
-        let calendar = Calendar.current
-        if let index = store.months[1].dates.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: store.selectedDate) }) {
+    var weekRow: CGFloat {
+        if let index = store.months[1].dates.firstIndex(where: { $0.date == store.selectedWeek }) {
             return CGFloat(index / 7).rounded()
         }
         
@@ -205,7 +206,7 @@ struct CustomScrollBehaviour: ScrollTargetBehavior {
             target.rect = .zero
         }
         
-        if target.rect.minY < context.containerSize.height/4, context.velocity.dy < 0 {
+        if target.rect.minY < context.containerSize.height / 4, context.velocity.dy < 0 {
             target.rect.origin.y = 0.0
         }
     }

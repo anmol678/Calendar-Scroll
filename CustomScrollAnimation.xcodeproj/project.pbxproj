@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		793104D22B7B62F500A5D973 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793104D12B7B62F500A5D973 /* CalendarView.swift */; };
 		793104D42B7B63B000A5D973 /* CalendarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793104D32B7B63B000A5D973 /* CalendarStore.swift */; };
-		AD29F90A2B0525B20017327F /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD29F9092B0525B20017327F /* Home.swift */; };
+		AD29F90A2B0525B20017327F /* Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD29F9092B0525B20017327F /* Timeline.swift */; };
 		AD36B4542B053FA60048763A /* Day.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD36B4532B053FA50048763A /* Day.swift */; };
 		AD36B4592B053FCB0048763A /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD36B4582B053FCB0048763A /* Date+Extensions.swift */; };
 		ADC9CB8C2B012BBE007A81A5 /* CustomScrollAnimationApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC9CB8B2B012BBE007A81A5 /* CustomScrollAnimationApp.swift */; };
@@ -21,7 +21,7 @@
 /* Begin PBXFileReference section */
 		793104D12B7B62F500A5D973 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		793104D32B7B63B000A5D973 /* CalendarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarStore.swift; sourceTree = "<group>"; };
-		AD29F9092B0525B20017327F /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
+		AD29F9092B0525B20017327F /* Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timeline.swift; sourceTree = "<group>"; };
 		AD36B4532B053FA50048763A /* Day.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Day.swift; sourceTree = "<group>"; };
 		AD36B4582B053FCB0048763A /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		ADC9CB882B012BBE007A81A5 /* CustomScrollAnimation.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CustomScrollAnimation.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -55,7 +55,7 @@
 		AD29F9082B0525AD0017327F /* View */ = {
 			isa = PBXGroup;
 			children = (
-				AD29F9092B0525B20017327F /* Home.swift */,
+				AD29F9092B0525B20017327F /* Timeline.swift */,
 				793104D12B7B62F500A5D973 /* CalendarView.swift */,
 			);
 			path = View;
@@ -180,7 +180,7 @@
 			files = (
 				ADC9CB8E2B012BBE007A81A5 /* ContentView.swift in Sources */,
 				793104D22B7B62F500A5D973 /* CalendarView.swift in Sources */,
-				AD29F90A2B0525B20017327F /* Home.swift in Sources */,
+				AD29F90A2B0525B20017327F /* Timeline.swift in Sources */,
 				AD36B4542B053FA60048763A /* Day.swift in Sources */,
 				793104D42B7B63B000A5D973 /* CalendarStore.swift in Sources */,
 				ADC9CB8C2B012BBE007A81A5 /* CustomScrollAnimationApp.swift in Sources */,
