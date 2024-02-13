@@ -99,7 +99,6 @@ struct Home: View {
                                         .fill(.white)
                                         .frame(width: 5, height: 5)
                                         .opacity(Calendar.current.isDate(day.date, inSameDayAs: store.selectedDate) ? 1 : 0)
-                                        .offset(y: progress * -2)
                                 })
                                 .contentShape(.rect)
                                 .onTapGesture {
