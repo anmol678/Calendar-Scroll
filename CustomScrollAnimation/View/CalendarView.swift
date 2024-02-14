@@ -44,7 +44,7 @@ struct CalendarTabView<Content: View>: View {
                 .tag(1)
                 .onDisappear() {
                     if direction != .unknown {
-                        store.update(to: direction)
+                        store.scroll(in: direction)
                         direction = .unknown
                         activeTab = 1
                     }

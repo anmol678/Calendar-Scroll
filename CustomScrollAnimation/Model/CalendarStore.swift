@@ -7,10 +7,53 @@
 
 import Foundation
 
+enum TimePeriodType {
+    case week
+    case month
+}
+
 struct TimePeriod {
+
+    static let calendar = Calendar.current
+    
     let index: Int
+    let referenceDate: Date
     let dates: [Day]
-    var referenceDate: Date
+    
+    init(index: Int, referenceDate: Date, type: TimePeriodType) {
+        self.index = index
+        self.referenceDate = referenceDate
+        switch type {
+            case .week:
+                self.dates = TimePeriod.datesFor(week: referenceDate)
+            case .month:
+                self.dates = TimePeriod.datesFor(month: referenceDate)
+        }
+    }
+    
+    static private func datesFor(month: Date) -> [Day] {
+        let range = calendar.range(of: .day, in: .month, for: month)
+        let firstDayOfMonth = month.startOfMonth()
+        let firstWeekDayIndex = calendar.component(.weekday, from: firstDayOfMonth) - 1
+        return (-firstWeekDayIndex...41).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: firstDayOfMonth),
+                  let range = range else {
+                return nil
+            }
+            let isIgnored = offset < 0 || !range.contains(offset + 1)
+            return Day(date: date, ignored: isIgnored)
+        }
+    }
+    
+    static private func datesFor(week: Date) -> [Day] {
+        let startOfWeek = week.startOfWeek()
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else {
+                return nil
+            }
+            return Day(date: date)
+        }
+    }
 }
 
 enum CalendarScope {
@@ -38,6 +81,14 @@ class CalendarStore: ObservableObject {
     
     @Published var scope: CalendarScope
     
+    private var currentWeek: TimePeriod {
+        weeks[1]
+    }
+    
+    private var currentMonth: TimePeriod {
+        months[1]
+    }
+    
     init(with date: Date = Date()) {
         let startOfDay = calendar.startOfDay(for: date)
         self.selectedDate = startOfDay
@@ -49,7 +100,7 @@ class CalendarStore: ObservableObject {
     
     private func updateSelectedWeekAndMonth() {
         selectedWeek = selectedDate.startOfWeek()
-        if scope == .month && months[1].dates.contains(where: { $0.date == selectedDate }) {
+        if scope == .month && currentMonth.dates.contains(where: { $0.date == selectedDate }) {
             
         } else {
             selectedMonth = selectedDate.startOfMonth()
@@ -58,23 +109,15 @@ class CalendarStore: ObservableObject {
     
     private func calculateTimePeriods() {
         months = [
-            month(for: selectedMonth.addingMonths(-1), with: -1),
-            month(for: selectedMonth, with: 0),
-            month(for: selectedMonth.addingMonths(1), with: 1)
+            TimePeriod(index: -1, referenceDate: selectedMonth.addMonths(-1), type: .month),
+            TimePeriod(index: 0, referenceDate: selectedMonth, type: .month),
+            TimePeriod(index: 1, referenceDate: selectedMonth.addMonths(1), type: .month)
         ]
         weeks = [
-            week(for: selectedWeek.addingWeeks(-1), with: -1),
-            week(for: selectedWeek, with: 0),
-            week(for: selectedWeek.addingWeeks(1), with: 1)
+            TimePeriod(index: -1, referenceDate: selectedWeek.addWeeks(-1), type: .week),
+            TimePeriod(index: 0, referenceDate: selectedWeek, type: .week),
+            TimePeriod(index: 1, referenceDate: selectedWeek.addWeeks(1), type: .week)
         ]
-    }
-    
-    private func month(for date: Date, with index: Int) -> TimePeriod {
-        TimePeriod(index: index, dates: datesFor(month: date), referenceDate: date)
-    }
-    
-    private func week(for date: Date, with index: Int) -> TimePeriod {
-        TimePeriod(index: index, dates: datesFor(week: date), referenceDate: date)
     }
     
     func selectToday() {
@@ -85,82 +128,50 @@ class CalendarStore: ObservableObject {
         selectedDate = calendar.startOfDay(for: date)
     }
     
-    func update(to direction: TimeDirection) {
-        switch scope {
-            case .week:
-                selectedWeek = selectedWeek.addingWeeks(direction.rawValue)
-            case .month:
-                selectedMonth = selectedMonth.addingMonths(direction.rawValue)
-            case .transition:
-                return
-        }
-        
-        calculateTimePeriods()
-        
-        switch scope {
-            case .week:
-                if weeks[1].dates.contains(where: { $0.date == selectedDate }) {
-                    selectedMonth = selectedDate.startOfMonth()
-                } else {
-                    selectedMonth = selectedWeek.startOfMonth()
-                }
-            case .month:
-                if months[1].dates.contains(where: { $0.date == selectedDate }) {
-                    selectedWeek = selectedDate.startOfWeek()
-                } else {
-                    selectedWeek = selectedMonth.startOfWeek()
-                }
-            case .transition:
-                return
+    func scroll(in direction: TimeDirection) {
+        if scope == .week {
+            selectedWeek = selectedWeek.addWeeks(direction.rawValue)
+            calculateTimePeriods()
+            
+            if currentWeek.dates.contains(where: { $0.date == selectedDate }) {
+                selectedMonth = selectedDate.startOfMonth()
+            } else {
+                selectedMonth = selectedWeek.startOfMonth()
+            }
+        } else if scope == .month {
+            selectedMonth = selectedMonth.addMonths(direction.rawValue)
+            calculateTimePeriods()
+            
+            if currentMonth.dates.contains(where: { $0.date == selectedDate }) {
+                selectedWeek = selectedDate.startOfWeek()
+            } else {
+                selectedWeek = selectedMonth.startOfWeek()
+            }
         }
     }
     
-    func updateScope(_ newScope: CalendarScope) {
+    func setScope(_ newScope: CalendarScope) {
         guard scope != newScope else { return }
         
         scope = newScope
-        
+
         calculateTimePeriods()
         
         switch newScope {
             case .week:
-                if weeks[1].dates.contains(where: { $0.date == selectedDate }) {
+                if currentWeek.dates.contains(where: { $0.date == selectedDate }) {
                     selectedMonth = selectedDate.startOfMonth()
                 } else {
                     selectedMonth = selectedWeek.startOfMonth()
                 }
             case .month:
-                if months[1].dates.contains(where: { $0.date == selectedDate }) {
+                if currentMonth.dates.contains(where: { $0.date == selectedDate }) {
                     selectedWeek = selectedDate.startOfWeek()
                 } else {
                     selectedWeek = selectedMonth.startOfWeek()
                 }
             case .transition:
                 return
-        }
-    }
-    
-    private func datesFor(month: Date) -> [Day] {
-        let range = calendar.range(of: .day, in: .month, for: month)
-        let firstDayOfMonth = month.startOfMonth()
-        let firstWeekDayIndex = calendar.component(.weekday, from: firstDayOfMonth) - 1
-        return (-firstWeekDayIndex...41).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: firstDayOfMonth),
-                  let range = range else {
-                return nil
-            }
-            let isIgnored = offset < 0 || !range.contains(offset + 1)
-            return Day(date: date, ignored: isIgnored)
-        }
-    }
-    
-    private func datesFor(week: Date) -> [Day] {
-        let startOfWeek = week.startOfWeek()
-        return (0..<7).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else {
-                return nil
-            }
-            return Day(date: date)
         }
     }
     
