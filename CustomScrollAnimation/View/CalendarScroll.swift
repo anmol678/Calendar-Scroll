@@ -7,70 +7,6 @@
 
 import SwiftUI
 
-struct CalendarConfigs {
-    
-    let safeArea: EdgeInsets
-    
-    var minCalendarHeight: CGFloat {
-        calendarTitleViewHeight + weekLabelHeight + minCalendarGridHeight + 2 * verticalPadding + safeArea.top
-    }
-    
-    var maxCalendarHeight: CGFloat {
-        calendarTitleViewHeight + weekLabelHeight + maxCalendarGridHeight + 2 * verticalPadding + safeArea.top
-    }
-    
-    var calendarTitleViewHeight: CGFloat {
-        44.0
-    }
-    
-    var weekLabelHeight: CGFloat {
-        20.0
-    }
-    
-    var minCalendarGridHeight: CGFloat {
-        rowHeight
-    }
-    
-    var maxCalendarGridHeight: CGFloat {
-        6 * rowHeight
-    }
-    
-    var rowHeight: CGFloat {
-        40.0
-    }
-    
-    var horizontalPadding: CGFloat {
-        16.0
-    }
-    
-    var verticalPadding: CGFloat {
-        5.0
-    }
-    
-}
-
-enum DragState {
-    case inactive
-    case dragging(dy: CGFloat)
-    
-    var dy: CGFloat {
-        switch self {
-            case .inactive:
-                return .zero
-            case .dragging(let dy):
-                return dy
-        }
-    }
-    
-    var isDragging: Bool {
-        switch self {
-            case .inactive:
-                return false
-            case .dragging:
-                return true
-        }
-    }
-}
 
 struct CalendarScroll: View {
     @EnvironmentObject var store: CalendarStore
@@ -81,6 +17,10 @@ struct CalendarScroll: View {
     
     init(safeArea: EdgeInsets) {
         config = CalendarConfigs(safeArea: safeArea)
+    }
+    
+    var calendarHeight: CGFloat {
+        DragManager.calendarHeight(for: dragState, in: store.scope, with: config)
     }
     
     var body: some View {
@@ -130,8 +70,6 @@ struct CalendarScroll: View {
     
     @ViewBuilder
     func CalendarView() -> some View {
-        let progress = store.scope == .month ? max(min(-dragState.dy/requiredHeightChange, 1), 0) : min(max(dragState.dy/requiredHeightChange, 0), 1)
-        
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Text("\(format("MMMM")) \(format("YYYY"))")
@@ -140,8 +78,8 @@ struct CalendarScroll: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: config.calendarTitleViewHeight)
-            .padding(.horizontal, config.horizontalPadding)
+            .frame(height: CalendarConfigs.calendarTitleViewHeight)
+            .padding(.horizontal, CalendarConfigs.horizontalPadding)
             
             HStack(spacing: 0) {
                 ForEach(Calendar.current.weekdaySymbols, id: \.self) { symbol in
@@ -151,7 +89,7 @@ struct CalendarScroll: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(height: config.weekLabelHeight)
+            .frame(height: CalendarConfigs.weekLabelHeight)
             
             GeometryReader { geo in
                 let frame = geo.frame(in: .named("calendar"))
@@ -162,11 +100,11 @@ struct CalendarScroll: View {
                             Text(day.shortSymbol)
                                 .foregroundStyle(day.ignored ? .secondary : .primary)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: config.rowHeight)
+                                .frame(height: CalendarConfigs.rowHeight)
                                 .overlay(alignment: .center, content: {
                                     RoundedRectangle(cornerSize: CGSize(width: 8.0, height: 8.0))
                                         .fill(.white)
-                                        .frame(width: config.rowHeight*1.2, height: config.rowHeight*0.7)
+                                        .frame(width: CalendarConfigs.rowHeight*1.2, height: CalendarConfigs.rowHeight*0.7)
                                         .opacity(Calendar.current.isDate(day.date, inSameDayAs: store.selectedDate) ? 0.5 : 0)
                                 })
                                 .contentShape(.rect)
@@ -177,28 +115,31 @@ struct CalendarScroll: View {
                     })
                     .frame(maxHeight: .infinity)
                     .frame(height: frame.height, alignment: .top)
-                    .offset(y: store.scope == .month ? requiredOffsetChange * progress : (dragState.isDragging ? requiredOffsetChange * (1-progress) : 0))
+                    .offset(y: DragManager.contentOffset(for: dragState, in: store.scope, with: store.selectedWeekRow))
                     .contentShape(.rect)
                     .clipped()
                 }
                 .onDragGesture(
                     onUpdate: { gesture in
-                        if store.scope == .week && gesture.translation.height < 0 {
+                        let dy = gesture.translation.height
+                        if store.scope == .week && dy < 0 {
                             dragState = .inactive
                             return
                         }
                         
-                        dragState = .dragging(dy: gesture.translation.height)
+                        dragState = .dragging(dy: dy)
                     },
                     onEnd: { gesture in
-                        let threshold = requiredHeightChange / 2
+                        let dy = gesture.translation.height
+                        let velocity = gesture.velocity.height
+                        let translationThreshold = CalendarConfigs.maxTranslationY / 2
                         let velocityThreshold: CGFloat = 800.0
                         
-                        if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
+                        if dy > translationThreshold || velocity > velocityThreshold {
                             store.setScope(.month)
                         }
                         
-                        if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
+                        if dy < translationThreshold || velocity < -velocityThreshold {
                             store.setScope(.week)
                         }
                         
@@ -208,40 +149,16 @@ struct CalendarScroll: View {
                         dragState = .inactive
                     }
                 )
-//                .gesture(
-//                    DragGesture(minimumDistance: 30.0)
-//                        .onChanged({ gesture in
-//                            if store.scope == .week && gesture.translation.height < 0 {
-//                                dragState = .inactive
-//                                return
-//                            }
-//                            
-//                            withAnimation(.spring(duration: 0.3)) {
-//                                dragState = .dragging(dy: gesture.translation.height)
-//                            }
-//                        })
-//                        .onEnded({ gesture in
-//                            withAnimation(.spring(duration: 0.3)) {
-//                                let threshold = requiredHeightChange / 2
-//                                let velocityThreshold: CGFloat = 800.0
-//                                
-//                                if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
-//                                    store.setScope(.month)
-//                                }
-//                                
-//                                if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
-//                                    store.setScope(.week)
-//                                }
-//                                
-//                                dragState = .inactive
-//                            }
-//                        })
-//                )
+            }
+            .onChange(of: dragState) { oldValue, newValue in
+                if oldValue.isDragging != newValue.isDragging {
+                    store.calculateTimePeriods()
+                }
             }
         }
         .foregroundStyle(.white)
-        .padding(.top, config.safeArea.top)
-        .padding(.vertical, config.verticalPadding)
+        .padding(.top, config.topPadding)
+        .padding(.vertical, CalendarConfigs.verticalPadding)
         .frame(height: calendarHeight)
         .background(.red.gradient)
     }
@@ -250,27 +167,6 @@ struct CalendarScroll: View {
         let formatter = DateFormatter()
         formatter.dateFormat = format
         return formatter.string(from: store.selectedMonth)
-    }
-    
-    var weekRow: CGFloat {
-        if let index = store.currentMonth.dates.firstIndex(where: { $0.date == store.selectedWeek }) {
-            return CGFloat(index / 7).rounded()
-        }
-        
-        return 0
-    }
-    
-    var requiredOffsetChange: CGFloat {
-        return -weekRow * config.rowHeight
-    }
-    
-    var requiredHeightChange: CGFloat {
-        return config.maxCalendarGridHeight - config.minCalendarGridHeight
-    }
-    
-    var calendarHeight: CGFloat {
-        let height = store.scope == .week ? config.minCalendarHeight : config.maxCalendarHeight
-        return min(max(height + dragState.dy, config.minCalendarHeight), config.maxCalendarHeight)
     }
 }
 
