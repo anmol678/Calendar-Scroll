@@ -18,20 +18,19 @@ struct CalendarTabView<Content: View>: View {
 
     @State private var activeTab: Int = 1
     @State private var direction: TimeDirection = .unknown
+    
+    var isDragging: Bool
 
     let content: (_ week: TimePeriod) -> Content
 
-    init(@ViewBuilder content: @escaping (_ week: TimePeriod) -> Content) {
+    init(dragging: Bool = false, @ViewBuilder content: @escaping (_ week: TimePeriod) -> Content) {
+        self.isDragging = dragging
         self.content = content
     }
 
     var body: some View {
         var data: [TimePeriod] {
-            if store.scope == .week {
-                store.weeks
-            } else {
-                store.months
-            }
+            store.scope == .week && !isDragging ? store.weeks : store.months
         }
         
         TabView(selection: $activeTab) {

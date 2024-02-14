@@ -89,7 +89,7 @@ class CalendarStore: ObservableObject {
         weeks[1]
     }
     
-    private var currentMonth: TimePeriod {
+    var currentMonth: TimePeriod {
         months[1]
     }
     
