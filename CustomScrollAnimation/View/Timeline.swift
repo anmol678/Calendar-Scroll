@@ -7,27 +7,59 @@
 
 import SwiftUI
 
+enum DragState {
+    case inactive
+    case dragging(translation: CGSize)
+    
+    var translation: CGSize {
+        switch self {
+        case .inactive:
+            return .zero
+        case .dragging(let translation):
+            return translation
+        }
+    }
+    
+    var isDragging: Bool {
+        switch self {
+        case .inactive:
+            return false
+        case .dragging:
+            return true
+        }
+    }
+}
+
 struct Timeline: View {
     @EnvironmentObject var store: CalendarStore
+    
+    @State private var dragState = DragState.inactive
+    
     
     /// View Properties
     var safeArea: EdgeInsets
     var body: some View {
         let maxHeight = calendarHeight - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding)
-        ScrollView(.vertical) {
-            VStack(spacing: 0) {
-                CalendarView()
-                
-                VStack(spacing: 15) {
-                    ForEach(1...15, id: \.self) { _ in
-                        CardView()
+        ZStack(alignment: .top) {
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: calendarHeight)
+
+                    VStack(spacing: 15) {
+                        ForEach(1...15, id: \.self) { _ in
+                            CardView()
+                        }
                     }
+                    .padding(15)
                 }
-                .padding(15)
             }
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: maxHeight))
+
+            CalendarView()
+//                .frame(height: calendarHeight)
+                .zIndex(1000)
         }
-        .scrollIndicators(.hidden)
-        .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: maxHeight))
     }
     
     /// Test Card View (For Scroll Content)
@@ -59,10 +91,11 @@ struct Timeline: View {
     func CalendarView() -> some View {
         GeometryReader {
             let size = $0.size
-            let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
+//            let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
+            let minY = dragState.translation.height
             /// Converting Scroll into Progress
             let maxHeight = size.height - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding + gridHeight)
-            let progress = max(min((-minY / maxHeight), 1), 0)
+            let progress = store.scope == .month ? max(min((-minY / maxHeight), 1), 0) : min(max(minY/(calendarGridHeight - gridHeight), 0), 1)
             
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
@@ -106,19 +139,49 @@ struct Timeline: View {
                                 }
                         }
                     })
-                    .frame(height: store.scope == .week ? gridHeight : calendarGridHeight - ((calendarGridHeight - gridHeight) * progress), alignment: .top)
-                    .offset(y: store.scope == .week ? 0 : ((weekRow * -gridHeight) * progress))
+                    .background(Color.red)
+                    .frame(height: store.scope == .week ? gridHeight : store.scope == .month ? calendarGridHeight - ((calendarGridHeight - gridHeight) * progress) : gridHeight + (calendarGridHeight - gridHeight)*progress, alignment: .top)
+                    .offset(y: store.scope == .week ? 0 : store.scope == .month ? ((weekRow * -gridHeight) * progress) : (weekRow * -gridHeight * progress))
                     .contentShape(.rect)
                     .clipped()
                 }
+                
+                /// handle inner frame ^ height and offset for scope == .transition ie when draggin down from week to month
+                ///  bigger negative number means further up the content is, as the number decreases the content moves lower
+                ///  inner height seems to be increasing slower that the outer frame height
                 
             }
             .foregroundStyle(.white)
             .padding(.top, safeArea.top)
             .padding(.vertical, verticalPadding)
             .frame(maxHeight: .infinity)
-            .frame(height: size.height - (maxHeight * progress), alignment: .top)
-            .background(.regularMaterial)
+            .frame(height: store.scope == .transition ? max(min(calMaxHeight, size.height + ((calendarGridHeight - gridHeight) * progress)), calendarHeight) : size.height - (maxHeight * progress), alignment: .top)
+            .background(.blue)
+            .gesture(
+                DragGesture()
+                    .onChanged{ gesture in
+                        if store.scope == .week {
+                            store.setScope(.transition)
+                        }
+                        dragState = .dragging(translation: gesture.translation)
+                        
+                        print("progress: \(minY/(calendarGridHeight-gridHeight))")
+                        print("inner height: \(store.scope == .week ? gridHeight : store.scope == .month ? calendarGridHeight - ((calendarGridHeight - gridHeight) * progress) : calendarGridHeight*progress)")
+                        print("offset: \(store.scope == .week ? 0 : store.scope == .month ? ((weekRow * -gridHeight) * progress) : (((6-weekRow) * gridHeight) * progress))")
+                        
+                        print(minY, progress)
+                    }
+                    .onEnded { gesture in
+                        if gesture.translation.height < -(maxHeight / 4) {
+                            store.setScope(.week)
+                        } else if gesture.translation.height > (maxHeight / 4) {
+                            store.setScope(.month)
+                        }
+
+                        dragState = .inactive
+                        print("ended")
+                    }
+            )
             /// Sticking it to top
             .clipped()
             .contentShape(.rect)
@@ -166,6 +229,16 @@ struct Timeline: View {
     
     /// View Heights & Paddings
     var calendarHeight: CGFloat {
+        
+        if store.scope == .week || store.scope == .transition {
+            return calendarTitleViewHeight + weekLabelHeight + gridHeight + safeArea.top + verticalPadding + verticalPadding
+        }
+        
+        
+        return calendarTitleViewHeight + weekLabelHeight + calendarGridHeight + safeArea.top + verticalPadding + verticalPadding
+    }
+    
+    var calMaxHeight: CGFloat {
         return calendarTitleViewHeight + weekLabelHeight + calendarGridHeight + safeArea.top + verticalPadding + verticalPadding
     }
     
