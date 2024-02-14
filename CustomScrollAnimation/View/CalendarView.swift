@@ -61,6 +61,7 @@ struct CalendarTabView<Content: View>: View {
                 direction = .future
             }
         }
+        .allowsHitTesting(!isDragging)
     }
 }
 
