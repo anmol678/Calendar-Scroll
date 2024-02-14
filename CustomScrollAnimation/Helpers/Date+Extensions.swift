@@ -20,12 +20,12 @@ extension Date {
         return calendar.date(from: calendar.dateComponents([.year, .month], from: self))!
     }
 
-    func addingMonths(_ months: Int) -> Date {
+    func addMonths(_ months: Int) -> Date {
             let calendar = Calendar.current
         return calendar.date(byAdding: .month, value: months, to: self)!
     }
 
-    func addingWeeks(_ weeks: Int) -> Date {
+    func addWeeks(_ weeks: Int) -> Date {
             let calendar = Calendar.current
         return calendar.date(byAdding: .weekOfYear, value: weeks, to: self)!
     }

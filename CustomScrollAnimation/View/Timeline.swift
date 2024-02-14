@@ -126,11 +126,11 @@ struct Timeline: View {
             .onChange(of: progress) { oldValue, newValue in
                 if oldValue != newValue {
                     if newValue == 1 {
-                        store.updateScope(.week)
+                        store.setScope(.week)
                     } else if newValue == 0 {
-                        store.updateScope(.month)
+                        store.setScope(.month)
                     } else {
-                        store.updateScope(.transition)
+                        store.setScope(.transition)
                     }
                 }
             }
