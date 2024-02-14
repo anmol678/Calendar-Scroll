@@ -35,12 +35,16 @@ struct TimePeriod {
         let range = calendar.range(of: .day, in: .month, for: month)
         let firstDayOfMonth = month.startOfMonth()
         let firstWeekDayIndex = calendar.component(.weekday, from: firstDayOfMonth) - 1
-        return (-firstWeekDayIndex...41).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: firstDayOfMonth),
+        let numberOfDaysInWeek = 7
+        let totalSlots = 6 * numberOfDaysInWeek // 6 weeks times 7 days
+
+        return (0..<totalSlots).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset - firstWeekDayIndex, to: firstDayOfMonth),
                   let range = range else {
                 return nil
             }
-            let isIgnored = offset < 0 || !range.contains(offset + 1)
+            let dayOffset = offset - firstWeekDayIndex
+            let isIgnored = dayOffset < 0 || !range.contains(dayOffset + 1)
             return Day(date: date, ignored: isIgnored)
         }
     }
