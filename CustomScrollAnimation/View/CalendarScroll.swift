@@ -185,15 +185,32 @@ struct CalendarScroll: View {
                 .contentShape(.rect)
                 .clipped()
                 .gesture(
-                    DragGesture()
+                    DragGesture(minimumDistance: 30.0)
                         .onChanged({ gesture in
-                            dragState = .dragging(dy: gesture.translation.height)
-                            print(frame.height, frame.minY)
-                            print("progress \(progress)")
+                            if store.scope == .week && gesture.translation.height < 0 {
+                                dragState = .inactive
+                                return
+                            }
+                            
+                            withAnimation(.spring(duration: 0.3)) {
+                                dragState = .dragging(dy: gesture.translation.height)
+                            }
                         })
                         .onEnded({ gesture in
-                            dragState = .inactive
-                            print(gesture.velocity, gesture.predictedEndTranslation.height, gesture.translation.height)
+                            withAnimation(.spring(duration: 0.3)) {
+                                let threshold = requiredHeightChange / 2
+                                let velocityThreshold: CGFloat = 800.0
+                                
+                                if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
+                                    store.setScope(.month)
+                                }
+                                
+                                if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
+                                    store.setScope(.week)
+                                }
+                                
+                                dragState = .inactive
+                            }
                         })
                 )
             }
@@ -201,7 +218,7 @@ struct CalendarScroll: View {
         .foregroundStyle(.white)
         .padding(.top, config.safeArea.top)
         .padding(.vertical, config.verticalPadding)
-        .frame(height: min(max(calendarHeight + dragState.dy, config.minCalendarHeight), config.maxCalendarHeight))
+        .frame(height: calendarHeight)
         .background(.red.gradient)
     }
     
@@ -230,7 +247,8 @@ struct CalendarScroll: View {
     }
     
     var calendarHeight: CGFloat {
-        return store.scope == .week ? config.minCalendarHeight : config.maxCalendarHeight
+        let height = store.scope == .week ? config.minCalendarHeight : config.maxCalendarHeight
+        return min(max(height + dragState.dy, config.minCalendarHeight), config.maxCalendarHeight)
     }
 }
 
