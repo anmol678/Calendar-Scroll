@@ -10,24 +10,34 @@ import SwiftUI
 struct Timeline: View {
     @EnvironmentObject var store: CalendarStore
     
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging: Bool = false
+    
     /// View Properties
     var safeArea: EdgeInsets
     var body: some View {
         let maxHeight = calendarHeight - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding)
-        ScrollView(.vertical) {
-            VStack(spacing: 0) {
-                CalendarView()
-                
-                VStack(spacing: 15) {
-                    ForEach(1...15, id: \.self) { _ in
-                        CardView()
+        
+        ZStack(alignment: .top) {
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: calendarHeight)
+
+                    VStack(spacing: 15) {
+                        ForEach(1...15, id: \.self) { _ in
+                            CardView()
+                        }
                     }
+                    .padding(15)
                 }
-                .padding(15)
             }
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: maxHeight))
+
+            CalendarView()
+                .frame(height: calendarHeight)
+                .zIndex(1000)
         }
-        .scrollIndicators(.hidden)
-        .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: maxHeight))
     }
     
     /// Test Card View (For Scroll Content)
@@ -59,10 +69,29 @@ struct Timeline: View {
     func CalendarView() -> some View {
         GeometryReader {
             let size = $0.size
-            let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
-            /// Converting Scroll into Progress
-            let maxHeight = size.height - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding + gridHeight)
-            let progress = max(min((-minY / maxHeight), 1), 0)
+            let maxHeight = calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding + gridHeight
+            let progress = max(min((-dragOffset / maxHeight), 1), 0)
+
+            var dragHeight: CGFloat {
+                if store.scope == .week {
+                    if isDragging {
+                        print("week dragging")
+                        print(size.height + dragOffset)
+                        return max(0, size.height + dragOffset)
+                    } else {
+                        return maxHeight
+                    }
+                } else {
+                    if isDragging {
+                        print("month dragging")
+                        print(size.height + dragOffset)
+                        return max(0, size.height + dragOffset)
+                    } else {
+                        return maxHeight + 5*gridHeight
+                    }
+                }
+            }
+            
             
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
@@ -116,27 +145,48 @@ struct Timeline: View {
             .foregroundStyle(.white)
             .padding(.top, safeArea.top)
             .padding(.vertical, verticalPadding)
-            .frame(maxHeight: .infinity)
-            .frame(height: size.height - (maxHeight * progress), alignment: .top)
+//            .frame(maxHeight: .infinity)
+//            .frame(height: size.height - (maxHeight * progress), alignment: .top)
             .background(.regularMaterial)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        isDragging = true
+                        dragOffset = value.translation.height
+                        print("translation: \(value.translation.height), progress: \(progress)")
+                    }
+                    .onEnded { value in
+                        isDragging = false
+                        dragOffset = 0
+                        
+                        // Determine if the calendar should transition to week or month view
+                        if value.translation.height > 50 { // Threshold to switch to month view
+                            store.updateScope(.month)
+                        } else if value.translation.height < -50 { // Threshold to switch to week view
+                            store.updateScope(.week)
+                        }
+                    }
+            )
+            // Adjust the offset and height based on the drag state
+//            .offset(y: isDragging ? dragOffset : 0)
+            .frame(height: dragHeight, alignment: .top)
+
             /// Sticking it to top
             .clipped()
             .contentShape(.rect)
-            .offset(y: -minY)
-            .onChange(of: progress) { oldValue, newValue in
-                if oldValue != newValue {
-                    if newValue == 1 {
-                        store.updateScope(.week)
-                    } else if newValue == 0 {
-                        store.updateScope(.month)
-                    } else {
-                        store.updateScope(.transition)
-                    }
-                }
-            }
+//            .offset(y: -minY)
+//            .onChange(of: progress) { oldValue, newValue in
+//                if oldValue != newValue {
+//                    if newValue == 1 {
+//                        store.updateScope(.week)
+//                    } else if newValue == 0 {
+//                        store.updateScope(.month)
+//                    } else {
+//                        store.updateScope(.transition)
+//                    }
+//                }
+//            }
         }
-        .frame(height: calendarHeight)
-        .zIndex(1000)
     }
     
     /// Date Formatter
