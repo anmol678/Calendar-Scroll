@@ -89,8 +89,16 @@ class CalendarStore: ObservableObject {
         weeks[1]
     }
     
-    var currentMonth: TimePeriod {
+    private var currentMonth: TimePeriod {
         months[1]
+    }
+    
+    var selectedWeekRow: CGFloat {
+        if let index = currentMonth.dates.firstIndex(where: { $0.date == selectedWeek }) {
+            return CGFloat(index / 7).rounded()
+        }
+        
+        return 0
     }
     
     init(with date: Date = Date()) {
@@ -111,7 +119,7 @@ class CalendarStore: ObservableObject {
         }
     }
     
-    private func calculateTimePeriods() {
+    func calculateTimePeriods() {
         months = [
             TimePeriod(index: -1, referenceDate: selectedMonth.addMonths(-1), type: .month),
             TimePeriod(index: 0, referenceDate: selectedMonth, type: .month),
@@ -158,8 +166,6 @@ class CalendarStore: ObservableObject {
         guard scope != newScope else { return }
         
         scope = newScope
-
-        calculateTimePeriods()
         
         switch newScope {
             case .week:
