@@ -35,4 +35,10 @@ extension Date {
         formatter.dateFormat = "d"
         return formatter.string(from: self)
     }
+    
+    var monthYear: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM YYYY"
+        return formatter.string(from: self)
+    }
 }

@@ -18,7 +18,7 @@ struct Timeline: View {
         let maxHeight = calendarHeight - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding)
         ScrollView(.vertical) {
             VStack(spacing: 0) {
-                CalendarView()
+                CalendarViewL()
                 
                 VStack(spacing: 15) {
                     ForEach(1...15, id: \.self) { _ in
@@ -58,7 +58,7 @@ struct Timeline: View {
     
     /// Calendar View
     @ViewBuilder
-    func CalendarView() -> some View {
+    func CalendarViewL() -> some View {
         GeometryReader {
             let size = $0.size
             let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
@@ -89,7 +89,7 @@ struct Timeline: View {
                 .frame(height: weekLabelHeight, alignment: .bottom)
                 
                 /// Calendar Grid View
-                CalendarTabView() { timeperiod in
+                CalendarContentView() { timeperiod in
                     LazyVGrid(columns: Array(repeating: GridItem(spacing: 0), count: 7), spacing: 0, content: {
                         ForEach(timeperiod.dates) { day in
                             Text(day.shortSymbol)
