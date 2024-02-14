@@ -11,10 +11,6 @@ struct CalendarConfigs {
     
     let safeArea: EdgeInsets
     
-    var bufferHeight: CGFloat {
-        calendarTitleViewHeight + weekLabelHeight + 2 * verticalPadding + safeArea.top
-    }
-    
     var minCalendarHeight: CGFloat {
         calendarTitleViewHeight + weekLabelHeight + minCalendarGridHeight + 2 * verticalPadding + safeArea.top
     }
@@ -184,35 +180,66 @@ struct CalendarScroll: View {
 //                .offset(y: -weekRow * config.rowHeight)
                 .contentShape(.rect)
                 .clipped()
-                .gesture(
-                    DragGesture(minimumDistance: 30.0)
-                        .onChanged({ gesture in
-                            if store.scope == .week && gesture.translation.height < 0 {
-                                dragState = .inactive
-                                return
+                .onDragGesture(
+                    onUpdate: { gesture in
+                        if store.scope == .week && gesture.translation.height < 0 {
+                            dragState = .inactive
+                            return
+                        }
+                        
+                        withAnimation(.spring(duration: 0.3)) {
+                            dragState = .dragging(dy: gesture.translation.height)
+                        }
+                    },
+                    onEnd: { gesture in
+                        withAnimation(.spring(duration: 0.3)) {
+                            let threshold = requiredHeightChange / 2
+                            let velocityThreshold: CGFloat = 800.0
+                            
+                            if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
+                                store.setScope(.month)
                             }
                             
-                            withAnimation(.spring(duration: 0.3)) {
-                                dragState = .dragging(dy: gesture.translation.height)
+                            if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
+                                store.setScope(.week)
                             }
-                        })
-                        .onEnded({ gesture in
-                            withAnimation(.spring(duration: 0.3)) {
-                                let threshold = requiredHeightChange / 2
-                                let velocityThreshold: CGFloat = 800.0
-                                
-                                if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
-                                    store.setScope(.month)
-                                }
-                                
-                                if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
-                                    store.setScope(.week)
-                                }
-                                
-                                dragState = .inactive
-                            }
-                        })
+                            
+                            dragState = .inactive
+                        }
+                    },
+                    onCancel: {
+                        dragState = .inactive
+                    }
                 )
+//                .gesture(
+//                    DragGesture(minimumDistance: 30.0)
+//                        .onChanged({ gesture in
+//                            if store.scope == .week && gesture.translation.height < 0 {
+//                                dragState = .inactive
+//                                return
+//                            }
+//                            
+//                            withAnimation(.spring(duration: 0.3)) {
+//                                dragState = .dragging(dy: gesture.translation.height)
+//                            }
+//                        })
+//                        .onEnded({ gesture in
+//                            withAnimation(.spring(duration: 0.3)) {
+//                                let threshold = requiredHeightChange / 2
+//                                let velocityThreshold: CGFloat = 800.0
+//                                
+//                                if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
+//                                    store.setScope(.month)
+//                                }
+//                                
+//                                if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
+//                                    store.setScope(.week)
+//                                }
+//                                
+//                                dragState = .inactive
+//                            }
+//                        })
+//                )
             }
         }
         .foregroundStyle(.white)
