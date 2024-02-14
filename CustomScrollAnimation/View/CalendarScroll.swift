@@ -130,7 +130,7 @@ struct CalendarScroll: View {
     
     @ViewBuilder
     func CalendarView() -> some View {
-//        let progress = store.scope == .month ? max(min(dragState.dy/requiredHeightChange, 1), 0) : min(max(-dragState.dy/requiredHeightChange, 0), 1)
+        let progress = store.scope == .month ? max(min(-dragState.dy/requiredHeightChange, 1), 0) : min(max(dragState.dy/requiredHeightChange, 0), 1)
         
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
@@ -163,10 +163,10 @@ struct CalendarScroll: View {
                                 .foregroundStyle(day.ignored ? .secondary : .primary)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: config.rowHeight)
-                                .overlay(alignment: .top, content: {
-                                    Circle()
+                                .overlay(alignment: .center, content: {
+                                    RoundedRectangle(cornerSize: CGSize(width: 8.0, height: 8.0))
                                         .fill(.white)
-                                        .frame(width: config.rowHeight*0.7, height: config.rowHeight)
+                                        .frame(width: config.rowHeight*1.2, height: config.rowHeight*0.7)
                                         .opacity(Calendar.current.isDate(day.date, inSameDayAs: store.selectedDate) ? 0.5 : 0)
                                 })
                                 .contentShape(.rect)
@@ -175,11 +175,12 @@ struct CalendarScroll: View {
                                 }
                         }
                     })
-                    
+                    .frame(maxHeight: .infinity)
+                    .frame(height: frame.height, alignment: .top)
+                    .offset(y: store.scope == .month ? requiredOffsetChange * progress : (dragState.isDragging ? requiredOffsetChange * (1-progress) : 0))
+                    .contentShape(.rect)
+                    .clipped()
                 }
-                .frame(maxHeight: .infinity, alignment: .top)
-                .contentShape(.rect)
-                .clipped()
                 .onDragGesture(
                     onUpdate: { gesture in
                         if store.scope == .week && gesture.translation.height < 0 {
@@ -187,25 +188,21 @@ struct CalendarScroll: View {
                             return
                         }
                         
-                        withAnimation(.spring(duration: 0.3)) {
-                            dragState = .dragging(dy: gesture.translation.height)
-                        }
+                        dragState = .dragging(dy: gesture.translation.height)
                     },
                     onEnd: { gesture in
-                        withAnimation(.spring(duration: 0.3)) {
-                            let threshold = requiredHeightChange / 2
-                            let velocityThreshold: CGFloat = 800.0
-                            
-                            if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
-                                store.setScope(.month)
-                            }
-                            
-                            if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
-                                store.setScope(.week)
-                            }
-                            
-                            dragState = .inactive
+                        let threshold = requiredHeightChange / 2
+                        let velocityThreshold: CGFloat = 800.0
+                        
+                        if gesture.translation.height > threshold || gesture.velocity.height > velocityThreshold {
+                            store.setScope(.month)
                         }
+                        
+                        if gesture.translation.height < threshold || gesture.velocity.height < -velocityThreshold {
+                            store.setScope(.week)
+                        }
+                        
+                        dragState = .inactive
                     },
                     onCancel: {
                         dragState = .inactive
@@ -263,14 +260,8 @@ struct CalendarScroll: View {
         return 0
     }
     
-    var currentOffset: CGFloat {
-        return weekRow * config.rowHeight
-    }
-    /// content offset flickers when the month view becomees visible
-    
     var requiredOffsetChange: CGFloat {
-//        let offset = weekRow * config.rowHeight
-        return weekRow * config.rowHeight
+        return -weekRow * config.rowHeight
     }
     
     var requiredHeightChange: CGFloat {
