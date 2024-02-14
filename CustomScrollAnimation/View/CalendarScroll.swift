@@ -130,7 +130,7 @@ struct CalendarScroll: View {
     
     @ViewBuilder
     func CalendarView() -> some View {
-        let progress = store.scope == .month ? max(min(dragState.dy/requiredHeightChange, 1), 0) : min(max(dragState.dy/requiredHeightChange, 0), 1)
+//        let progress = store.scope == .month ? max(min(dragState.dy/requiredHeightChange, 1), 0) : min(max(-dragState.dy/requiredHeightChange, 0), 1)
         
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
@@ -151,7 +151,7 @@ struct CalendarScroll: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(height: config.weekLabelHeight, alignment: .bottom)
+            .frame(height: config.weekLabelHeight)
             
             GeometryReader { geo in
                 let frame = geo.frame(in: .named("calendar"))
@@ -163,11 +163,11 @@ struct CalendarScroll: View {
                                 .foregroundStyle(day.ignored ? .secondary : .primary)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: config.rowHeight)
-                                .overlay(alignment: .bottom, content: {
+                                .overlay(alignment: .top, content: {
                                     Circle()
                                         .fill(.white)
-                                        .frame(width: 5, height: 5)
-                                        .opacity(Calendar.current.isDate(day.date, inSameDayAs: store.selectedDate) ? 1 : 0)
+                                        .frame(width: config.rowHeight*0.7, height: config.rowHeight)
+                                        .opacity(Calendar.current.isDate(day.date, inSameDayAs: store.selectedDate) ? 0.5 : 0)
                                 })
                                 .contentShape(.rect)
                                 .onTapGesture {
@@ -175,9 +175,9 @@ struct CalendarScroll: View {
                                 }
                         }
                     })
+                    
                 }
-                .frame(height: frame.height)
-//                .offset(y: -weekRow * config.rowHeight)
+                .frame(maxHeight: .infinity, alignment: .top)
                 .contentShape(.rect)
                 .clipped()
                 .onDragGesture(
@@ -263,14 +263,18 @@ struct CalendarScroll: View {
         return 0
     }
     
+    var currentOffset: CGFloat {
+        return weekRow * config.rowHeight
+    }
+    /// content offset flickers when the month view becomees visible
+    
     var requiredOffsetChange: CGFloat {
-        let offset = weekRow * config.rowHeight
-        return store.scope == .week ? offset : -offset
+//        let offset = weekRow * config.rowHeight
+        return weekRow * config.rowHeight
     }
     
     var requiredHeightChange: CGFloat {
-        let change = config.maxCalendarGridHeight - config.minCalendarGridHeight
-        return store.scope == .week ? change : -change
+        return config.maxCalendarGridHeight - config.minCalendarGridHeight
     }
     
     var calendarHeight: CGFloat {

@@ -10,6 +10,8 @@ import SwiftUI
 struct Timeline: View {
     @EnvironmentObject var store: CalendarStore
     
+    @State var isDragging: Bool = false
+    
     /// View Properties
     var safeArea: EdgeInsets
     var body: some View {

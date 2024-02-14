@@ -14,7 +14,7 @@ struct ContentView: View {
         GeometryReader {
             let safeArea = $0.safeAreaInsets
             
-            Timeline(safeArea: safeArea)
+            CalendarScroll(safeArea: safeArea)
                 .environmentObject(calendarStore)
                 .ignoresSafeArea(.container, edges: .top)
         }
