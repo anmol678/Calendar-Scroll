@@ -22,7 +22,9 @@ struct CalendarGridView: View {
     @ViewBuilder 
     func dayView(_ day: Day) -> some View {
         Text(day.shortSymbol)
-            .foregroundStyle(day.ignored ? .secondary : .primary)
+            .foregroundStyle(day.ignored ? .secondary : isSelectedDate(day) ? Color.red : .primary)
+            .font(.callout)
+            .fontWeight(.medium)
             .frame(maxWidth: .infinity)
             .frame(height: CalendarConfigs.rowHeight)
             .overlay(alignment: .center, content: {
@@ -37,9 +39,13 @@ struct CalendarGridView: View {
     @ViewBuilder
     func dayOverlay(_ day: Day) -> some View {
         RoundedRectangle(cornerSize: CGSize(width: 8.0, height: 8.0))
-            .fill(.white)
-            .frame(width: CalendarConfigs.rowHeight*1.2, height: CalendarConfigs.rowHeight*0.7)
-            .opacity(Calendar.current.isDate(day.date, inSameDayAs: selectedDate) ? 0.5 : 0)
+            .fill(.red.opacity(0.3))
+            .frame(width: CalendarConfigs.rowHeight, height: CalendarConfigs.rowHeight*0.7)
+            .opacity(isSelectedDate(day) ? 1 : 0)
+    }
+    
+    private func isSelectedDate(_ day: Day) -> Bool {
+        return Calendar.current.isDate(day.date, inSameDayAs: selectedDate)
     }
 }
 
