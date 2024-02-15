@@ -10,24 +10,40 @@ import SwiftUI
 struct Timeline: View {
     @EnvironmentObject var store: CalendarStore
     
+    @State var offset: CGFloat = 0
+    
     /// View Properties
     var safeArea: EdgeInsets
     var body: some View {
-        let maxHeight = calendarHeight - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding)
-        ScrollView(.vertical) {
-            VStack(spacing: 0) {
-                CalendarView()
-                
-                VStack(spacing: 15) {
-                    ForEach(1...15, id: \.self) { _ in
-                        CardView()
+        ZStack(alignment: .top) {
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: max(calendarHeight+offset*2, calendarHeight-calendarGridHeight+gridHeight))
+                    
+                    VStack(spacing: 15) {
+                        ForEach(1...15, id: \.self) { _ in
+                            CardView()
+                        }
                     }
+                    .padding(15)
                 }
-                .padding(15)
             }
+            .scrollIndicators(.hidden)
+            
+            ScrollView(.vertical) {
+                CalendarView()
+                    .frame(height: max(calendarHeight+offset, calendarHeight-calendarGridHeight+gridHeight))
+                
+                Color.clear
+                    .frame(height: max(calendarHeight+offset, calendarHeight-calendarGridHeight+gridHeight))
+            }
+            .frame(height: max(calendarHeight+offset*2, calendarHeight-calendarGridHeight+gridHeight))
+            .background(.red)
+//            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: calendarHeight))
+            .zIndex(1000)
         }
-        .scrollIndicators(.hidden)
-        .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: maxHeight))
     }
     
     /// Test Card View (For Scroll Content)
@@ -61,7 +77,7 @@ struct Timeline: View {
             let size = $0.size
             let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
             /// Converting Scroll into Progress
-            let maxHeight = size.height - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + verticalPadding + verticalPadding + gridHeight)
+            let maxHeight = size.height - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + 2 * verticalPadding + gridHeight)
             let progress = max(min((-minY / maxHeight), 1), 0)
             
             VStack(alignment: .leading, spacing: 0) {
@@ -124,6 +140,7 @@ struct Timeline: View {
             .contentShape(.rect)
             .offset(y: -minY)
             .onChange(of: progress) { oldValue, newValue in
+                print(progress)
                 if oldValue != newValue {
                     if newValue == 1 {
                         store.setScope(.week)
@@ -134,9 +151,10 @@ struct Timeline: View {
                     }
                 }
             }
+            .onChange(of: minY) { oldValue, newValue in
+                offset = minY
+            }
         }
-        .frame(height: calendarHeight)
-        .zIndex(1000)
     }
     
     /// Date Formatter
@@ -198,13 +216,15 @@ struct Timeline: View {
 struct CustomScrollBehaviour: ScrollTargetBehavior {
     var maxHeight: CGFloat
     func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
-        if target.rect.minY < maxHeight {
-            target.rect = .zero
-        }
+//        if target.rect.minY < maxHeight {
+//            target.rect = .zero
+//        }
         
-        if target.rect.minY < context.containerSize.height / 4, context.velocity.dy < 0 {
-            target.rect.origin.y = 0.0
-        }
+//        target.rect.height = 
+        
+//        if target.rect.minY < context.containerSize.height / 4, context.velocity.dy < 0 {
+//            target.rect.origin.y = 0.0
+//        }
     }
 }
 
