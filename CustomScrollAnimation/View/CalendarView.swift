@@ -27,7 +27,8 @@ struct CalendarView: View {
         ZStack(alignment: .top) {
             ScrollView(.vertical) {
                 VStack(spacing: 0) {
-                    Color.clear.frame(height: calendarHeight)
+                    Color.clear
+                        .frame(height: calendarHeight)
                     CardStack()
                 }
             }
@@ -50,7 +51,7 @@ struct CalendarView: View {
         .padding(.top, config.topPadding)
         .padding(.vertical, CalendarConfigs.verticalPadding)
         .frame(height: calendarHeight)
-        .background(.red.gradient)
+        .background(.thinMaterial)
     }
     
     @ViewBuilder
@@ -88,7 +89,9 @@ struct CalendarView: View {
                 CalendarGridView(timeperiod: timeperiod, selectedDate: $store.selectedDate)
                     .frame(maxHeight: .infinity)
                     .frame(height: frame.height, alignment: .top)
-                    .offset(y: DragManager.contentOffset(for: dragState, in: store.scope, with: store.selectedWeekRow))
+                    .animation(nil) {
+                        $0.offset(y: DragManager.contentOffset(for: dragState, in: store.scope, with: store.selectedWeekRow))
+                    }
                     .contentShape(.rect)
                     .clipped()
             }
@@ -103,23 +106,22 @@ struct CalendarView: View {
                 },
                 onEnd: { gesture in
                     if dragState.isDragging {
-                        let dy = gesture.translation.height
-                        let velocity = gesture.velocity.height
                         let translationThreshold = CalendarConfigs.maxTranslationY / 2
                         let velocityThreshold: CGFloat = 450
+                        
+                        let dy = gesture.translation.height
+                        let velocity = gesture.velocity.height
                         
                         if store.scope == .week {
                             if dy > translationThreshold || velocity > velocityThreshold {
                                 store.setScope(.month)
                             }
-                        }
-                        
-                        if store.scope == .month {
+                        } else if store.scope == .month {
                             if dy < -translationThreshold || velocity < -velocityThreshold {
                                 store.setScope(.week)
                             }
                         }
-                        
+                            
                         dragState = .inactive
                     }
                 },

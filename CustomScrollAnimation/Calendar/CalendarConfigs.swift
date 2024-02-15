@@ -40,7 +40,7 @@ struct CalendarConfigs {
     }
     
     static var rowHeight: CGFloat {
-        40.0
+        38.0
     }
     
     static private var minCalendarGridHeight: CGFloat {
