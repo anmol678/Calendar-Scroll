@@ -93,8 +93,7 @@ struct CalendarView: View {
                     .clipped()
             }
             .onDragGesture(
-                onUpdate: { gesture in
-                    let dy = gesture.translation.height
+                onUpdate: { dy in
                     if store.scope == .week && dy < 0 {
                         dragState = .inactive
                         return
