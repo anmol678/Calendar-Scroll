@@ -103,23 +103,31 @@ struct CalendarView: View {
                     dragState = .dragging(dy: dy)
                 },
                 onEnd: { gesture in
-                    let dy = gesture.translation.height
-                    let velocity = gesture.velocity.height
-                    let translationThreshold = CalendarConfigs.maxTranslationY / 2
-                    let velocityThreshold: CGFloat = 1000
-                    
-                    if dy > translationThreshold || velocity > velocityThreshold {
-                        store.setScope(.month)
+                    if dragState.isDragging {
+                        let dy = gesture.translation.height
+                        let velocity = gesture.velocity.height
+                        let translationThreshold = CalendarConfigs.maxTranslationY / 2
+                        let velocityThreshold: CGFloat = 450
+                        
+                        if store.scope == .week {
+                            if dy > translationThreshold || velocity > velocityThreshold {
+                                store.setScope(.month)
+                            }
+                        }
+                        
+                        if store.scope == .month {
+                            if dy < -translationThreshold || velocity < -velocityThreshold {
+                                store.setScope(.week)
+                            }
+                        }
+                        
+                        dragState = .inactive
                     }
-                    
-                    if dy < translationThreshold || velocity < -velocityThreshold {
-                        store.setScope(.week)
-                    }
-                    
-                    dragState = .inactive
                 },
                 onCancel: {
-                    dragState = .inactive
+                    if dragState.isDragging {
+                        dragState = .inactive
+                    }
                 }
             )
         }

@@ -21,7 +21,7 @@ struct DragGestureViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 35.0)
                     .updating($isDragging) { _, isDragging, _ in
                         isDragging = true
                     }
