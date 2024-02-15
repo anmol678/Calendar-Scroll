@@ -140,7 +140,7 @@ struct Timeline: View {
             .contentShape(.rect)
             .offset(y: -minY)
             .onChange(of: progress) { oldValue, newValue in
-                print(progress)
+                print(progress, offset, store.scope == .week ? 0 : ((weekRow * -gridHeight) * progress), maxHeight)
                 if oldValue != newValue {
                     if newValue == 1 {
                         store.setScope(.week)
@@ -200,7 +200,7 @@ struct Timeline: View {
     }
     
     var gridHeight: CGFloat {
-        return 40.0
+        return 38.0
     }
     
     var horizontalPadding: CGFloat {
