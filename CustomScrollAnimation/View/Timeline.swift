@@ -38,10 +38,10 @@ struct Timeline: View {
                 Color.clear
                     .frame(height: max(calendarHeight+offset, calendarHeight-calendarGridHeight+gridHeight))
             }
+            .scrollTargetBehavior(CustomScrollBehaviour(maxTranslation: maxTranslation))
             .frame(height: max(calendarHeight+offset*2, calendarHeight-calendarGridHeight+gridHeight))
-            .background(.red)
-//            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(CustomScrollBehaviour(maxHeight: calendarHeight))
+//            .background(.red)
+            .scrollIndicators(.hidden)
             .zIndex(1000)
         }
     }
@@ -75,10 +75,11 @@ struct Timeline: View {
     func CalendarView() -> some View {
         GeometryReader {
             let size = $0.size
-            let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
+//            let minY = $0.frame(in: .scrollView(axis: .vertical)).minY
+            let minY = -$0.frame(in: .global).minY
             /// Converting Scroll into Progress
-            let maxHeight = size.height - (calendarTitleViewHeight + weekLabelHeight + safeArea.top + 2 * verticalPadding + gridHeight)
-            let progress = max(min((-minY / maxHeight), 1), 0)
+            let translation = size.height - minCalendarHeight
+            let progress = max(min((minY / translation), 1), 0)
             
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
@@ -122,7 +123,7 @@ struct Timeline: View {
                                 }
                         }
                     })
-                    .frame(height: store.scope == .week ? gridHeight : calendarGridHeight - ((calendarGridHeight - gridHeight) * progress), alignment: .top)
+//                    .background(.green)
                     .offset(y: store.scope == .week ? 0 : ((weekRow * -gridHeight) * progress))
                     .contentShape(.rect)
                     .clipped()
@@ -132,15 +133,13 @@ struct Timeline: View {
             .foregroundStyle(.white)
             .padding(.top, safeArea.top)
             .padding(.vertical, verticalPadding)
-            .frame(maxHeight: .infinity)
-            .frame(height: size.height - (maxHeight * progress), alignment: .top)
+            .frame(height: store.scope == .week ? minCalendarHeight : calendarHeight)
             .background(.regularMaterial)
             /// Sticking it to top
             .clipped()
             .contentShape(.rect)
-            .offset(y: -minY)
+            .offset(y: minY)
             .onChange(of: progress) { oldValue, newValue in
-                print(progress, offset, store.scope == .week ? 0 : ((weekRow * -gridHeight) * progress), maxHeight)
                 if oldValue != newValue {
                     if newValue == 1 {
                         store.setScope(.week)
@@ -152,7 +151,7 @@ struct Timeline: View {
                 }
             }
             .onChange(of: minY) { oldValue, newValue in
-                offset = minY
+                offset = -newValue
             }
         }
     }
@@ -184,7 +183,15 @@ struct Timeline: View {
     
     /// View Heights & Paddings
     var calendarHeight: CGFloat {
-        return calendarTitleViewHeight + weekLabelHeight + calendarGridHeight + safeArea.top + verticalPadding + verticalPadding
+        return calendarTitleViewHeight + weekLabelHeight + calendarGridHeight + safeArea.top + verticalPadding*2
+    }
+    
+    var minCalendarHeight: CGFloat {
+        return calendarHeight - maxTranslation
+    }
+    
+    var maxTranslation: CGFloat {
+        return calendarGridHeight - gridHeight
     }
     
     var calendarTitleViewHeight: CGFloat {
@@ -214,17 +221,20 @@ struct Timeline: View {
 
 /// Custom Scroll Behaviour
 struct CustomScrollBehaviour: ScrollTargetBehavior {
-    var maxHeight: CGFloat
+    var maxTranslation: CGFloat
     func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
-//        if target.rect.minY < maxHeight {
-//            target.rect = .zero
-//        }
         
-//        target.rect.height = 
+        print(Date().description, target.rect.minY)
+//        print(maxHeight, target.rect.minY, target.rect.origin.y)
+//        print(context.containerSize.height, context.velocity.dy)
         
-//        if target.rect.minY < context.containerSize.height / 4, context.velocity.dy < 0 {
-//            target.rect.origin.y = 0.0
-//        }
+        let threshold = maxTranslation/2
+        
+        if threshold/2 < target.rect.minY {
+            target.rect.origin.y = threshold
+        } else {
+            target.rect.origin.y = 0.0
+        }
     }
 }
 
