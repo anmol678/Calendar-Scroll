@@ -28,30 +28,48 @@ struct CalendarView: View {
             ScrollView(.vertical) {
                 VStack(spacing: 0) {
                     Color.clear
-                        .frame(height: calendarHeight)
+                        .frame(height: calendarHeight, alignment: .top)
                     CardStack()
                 }
             }
             .scrollIndicators(.hidden)
             
-            CalendarView()
-                .coordinateSpace(.named("calendar"))
-                .zIndex(1000)
+            ScrollView(.vertical) {
+                CalendarView()
+                    .coordinateSpace(.named("calendar"))
+                
+                Color.clear
+                    .frame(height: calendarHeight, alignment: .top)
+            }
+            .background(.red)
+            .frame(height: calendarHeight, alignment: .top)
+            .zIndex(1000)
         }
     }
     
     @ViewBuilder
     func CalendarView() -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            CalendarHeader()
-            WeekdayLabels()
-            CalendarGrid()
+        GeometryReader { geo in
+            let minY = geo.frame(in: .scrollView(axis: .vertical)).minY
+            
+            VStack(alignment: .leading, spacing: 0) {
+                /// make calendarheader and weekdaylabels sticky at the top of the scrollview
+                /// scroll the grid vertically on drag ie scroll by controlling the scrollview offset
+                /// the height of the scroll view should change by the offset amount
+                CalendarHeader()
+                WeekdayLabels()
+                CalendarGrid()
+            }
+            .foregroundStyle(.white)
+            .padding(.top, config.topPadding)
+            .padding(.vertical, CalendarConfigs.verticalPadding)
+            .frame(height: calendarHeight)
+            .background(.thinMaterial)
+            .clipped()
+            .contentShape(.rect)
+            .offset(y: -minY)
+            
         }
-        .foregroundStyle(.white)
-        .padding(.top, config.topPadding)
-        .padding(.vertical, CalendarConfigs.verticalPadding)
-        .frame(height: calendarHeight)
-        .background(.thinMaterial)
     }
     
     @ViewBuilder
@@ -84,6 +102,7 @@ struct CalendarView: View {
     func CalendarGrid() -> some View {
         GeometryReader { geo in
             let frame = geo.frame(in: .named("calendar"))
+            let minY = geo.frame(in: .scrollView(axis: .vertical)).minY
             
             CalendarContentView(dragging: dragState.isDragging) { timeperiod in
                 CalendarGridView(timeperiod: timeperiod, selectedDate: $store.selectedDate)
@@ -95,42 +114,55 @@ struct CalendarView: View {
                     .contentShape(.rect)
                     .clipped()
             }
-            .onDragGesture(
-                onUpdate: { dy in
-                    if store.scope == .week && dy < 0 {
+            .onChange(of: minY) { oldValue, newValue in
+                if oldValue != newValue {
+                    
+                    if store.scope == .week && newValue < 0 {
                         dragState = .inactive
                         return
                     }
                     
-                    dragState = .dragging(dy: dy)
-                },
-                onEnd: { gesture in
-                    if dragState.isDragging {
-                        let translationThreshold = CalendarConfigs.maxTranslationY / 2
-                        let velocityThreshold: CGFloat = 450
-                        
-                        let dy = gesture.translation.height
-                        let velocity = gesture.velocity.height
-                        
-                        if store.scope == .week {
-                            if dy > translationThreshold || velocity > velocityThreshold {
-                                store.setScope(.month)
-                            }
-                        } else if store.scope == .month {
-                            if dy < -translationThreshold || velocity < -velocityThreshold {
-                                store.setScope(.week)
-                            }
-                        }
-                            
-                        dragState = .inactive
-                    }
-                },
-                onCancel: {
-                    if dragState.isDragging {
-                        dragState = .inactive
-                    }
+                    dragState = .dragging(dy: newValue)
                 }
-            )
+                
+            }
+//            .offset(y: -minY)
+//            .onDragGesture(
+//                onUpdate: { dy in
+//                    if store.scope == .week && dy < 0 {
+//                        dragState = .inactive
+//                        return
+//                    }
+//                    
+//                    dragState = .dragging(dy: dy)
+//                },
+//                onEnd: { gesture in
+//                    if dragState.isDragging {
+//                        let translationThreshold = CalendarConfigs.maxTranslationY / 2
+//                        let velocityThreshold: CGFloat = 450
+//                        
+//                        let dy = gesture.translation.height
+//                        let velocity = gesture.velocity.height
+//                        
+//                        if store.scope == .week {
+//                            if dy > translationThreshold || velocity > velocityThreshold {
+//                                store.setScope(.month)
+//                            }
+//                        } else if store.scope == .month {
+//                            if dy < -translationThreshold || velocity < -velocityThreshold {
+//                                store.setScope(.week)
+//                            }
+//                        }
+//                            
+//                        dragState = .inactive
+//                    }
+//                },
+//                onCancel: {
+//                    if dragState.isDragging {
+//                        dragState = .inactive
+//                    }
+//                }
+//            )
         }
         .onChange(of: dragState) { oldValue, newValue in
             if oldValue.isDragging != newValue.isDragging {

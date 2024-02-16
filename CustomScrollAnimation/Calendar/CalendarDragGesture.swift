@@ -38,14 +38,19 @@ struct DragManager {
     }
     
     static func contentOffset(for dragState: DragState, in scope: CalendarScope, with selectedRow: CGFloat) -> CGFloat {
-        let translationY = dragState.dy/CalendarConfigs.maxTranslationY
-        let progress = scope == .month ? max(min(-translationY, 1), 0) : min(max(translationY, 0), 1)
+        let progress = progress(for: dragState, in: scope)
         let dy = -selectedRow * CalendarConfigs.rowHeight
         if scope == .month {
             return dy * progress
         } else {
             return dragState.isDragging ? dy * (1-progress) : 0
         }
+    }
+    
+    static func progress(for dragState: DragState, in scope: CalendarScope) -> CGFloat {
+        let translationY = dragState.dy/CalendarConfigs.maxTranslationY
+        let progress = scope == .month ? max(min(-translationY, 1), 0) : min(max(translationY, 0), 1)
+        return progress
     }
     
 }
